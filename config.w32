@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("shurrik", "for shurrik support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("shurrik", "enable shurrik support", "no");
+
+if (PHP_SHURRIK != "no") {
+	EXTENSION("shurrik", "shurrik.c");
+}
+
