@@ -1,0 +1,8 @@
+shurrik.lo: /source/php-5.3.27/ext/shurrik/shurrik.c
+	$(LIBTOOL) --mode=compile $(CC)  -I. -I/source/php-5.3.27/ext/shurrik $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /source/php-5.3.27/ext/shurrik/shurrik.c -o shurrik.lo 
+$(phplibdir)/shurrik.la: ./shurrik.la
+	$(LIBTOOL) --mode=install cp ./shurrik.la $(phplibdir)
+
+./shurrik.la: $(shared_objects_shurrik) $(SHURRIK_SHARED_DEPENDENCIES)
+	$(LIBTOOL) --mode=link $(CC) $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS) $(LDFLAGS) -o $@ -export-dynamic -avoid-version -prefer-pic -module -rpath $(phplibdir) $(EXTRA_LDFLAGS) $(shared_objects_shurrik) $(SHURRIK_SHARED_LIBADD)
+

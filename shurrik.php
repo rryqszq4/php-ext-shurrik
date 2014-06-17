@@ -2,7 +2,7 @@
 $br = (php_sapi_name() == "cli")? "":"<br>";
 
 if(!extension_loaded('shurrik')) {
-	dl('php_shurrik.' . PHP_SHLIB_SUFFIX);
+	dl('shurrik.' . PHP_SHLIB_SUFFIX);
 }
 $module = 'shurrik';
 $functions = get_extension_funcs($module);

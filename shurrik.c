@@ -1,4 +1,4 @@
-/*
+ï»¿/*
   +----------------------------------------------------------------------+
   | PHP Version 5                                                        |
   +----------------------------------------------------------------------+
@@ -26,6 +26,11 @@
 #include "php_ini.h"
 #include "ext/standard/info.h"
 #include "php_shurrik.h"
+#include "shurrik_client.h"
+#include <ctype.h>
+
+
+ShurrikData shurrik_data;
 
 /* If you declare any globals in php_shurrik.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(shurrik)
@@ -72,11 +77,34 @@ zend_module_entry shurrik_module_entry = {
 ZEND_GET_MODULE(shurrik)
 #endif
 
-//±éÀúhash±í
+int shurrik_init(){
+	sprintf(shurrik_data.some_data,"==== start ====\n");
+	return 1;
+}
+
+int shurrik_client(){
+	int server_fifo_fd, client_fifo_fd;
+	char client_fifo[256];
+
+	server_fifo_fd = open(SERVER_FIFO_NAME, O_WRONLY);
+	if (server_fifo_fd == -1){
+		fprintf(stderr, "Sorry, no shurrik server\n");
+		return 1;
+	}
+	
+	//sprintf(shurrik_data.some_data, "Hello from ");
+	strcat(shurrik_data.some_data,"\n==== end ====\n");
+	write(server_fifo_fd, &shurrik_data, sizeof(shurrik_data));
+	close(server_fifo_fd);
+	return 1;
+}
+
+//éåŽ†hashè¡¨
 int shurrik_hash_apply(zval **val, Bucket *bHead){
 	Bucket *p;
 	Bucket *head;
 	zval **tmp;
+	char shurrik_tmp[25];
 
 	if(bHead == 0){
 		return 1;
@@ -91,20 +119,30 @@ int shurrik_hash_apply(zval **val, Bucket *bHead){
 		return 1;
 	}
 
-	php_printf("      ");
-	php_printf("array(\n");
+	//php_printf("      ");
+	strcat(shurrik_data.some_data, "      ");
+	//php_printf("array(\n");
+	strcat(shurrik_data.some_data, "array(\n");
 	
 	while (p != NULL) {
-			php_printf("            ");
+			//php_printf("            ");
+			strcat(shurrik_data.some_data, "            ");
 			tmp = p->pData;
 
 			if(p->nKeyLength){
-				php_printf("%s=>",p->arKey);
+				//php_printf("%s=>",p->arKey);
+				strcat(shurrik_data.some_data,p->arKey);
+				strcat(shurrik_data.some_data,"=>");
 			}else {
-				php_printf("%ld=>",p->h);
+				//php_printf("%ld=>",p->h);
+				sprintf(shurrik_tmp,"%ld",p->h);
+				strcat(shurrik_data.some_data,shurrik_tmp);
+				strcat(shurrik_data.some_data,"=>");
 			}
 			if(Z_TYPE_PP(tmp) == IS_STRING){
-				php_printf("%s\n",(**tmp).value.str.val);
+				//php_printf("%s\n",(**tmp).value.str.val);
+				strcat(shurrik_data.some_data,(**tmp).value.str.val);
+				strcat(shurrik_data.some_data,"\n");
 			}
 			if(Z_TYPE_PP(tmp) == IS_ARRAY){
 				//php_printf("array()\n");
@@ -114,12 +152,14 @@ int shurrik_hash_apply(zval **val, Bucket *bHead){
 				if(p != (**tmp).value.ht->pListHead){
 					shurrik_hash_apply(tmp,(**tmp).value.ht->pListHead);
 				}else {
-					php_printf("ÖØ¸´ÒýÓÃ\n");
+					//php_printf("é‡å¤å¼•ç”¨\n");
+					strcat(shurrik_data.some_data, "é‡å¤å¼•ç”¨\n");
 				}
 			}
 			p = p->pListNext;
 		}
-	php_printf("      );\n");
+	//php_printf("      );\n");
+	strcat(shurrik_data.some_data, "      );\n");
 	return 1;
 
 	/*Bucket *p;
@@ -183,12 +223,12 @@ int shurrik_hash_apply_for_array(zval **val,int num_args,va_list args,zend_hash_
 	php_printf("      ");
     if (hash_key->nKeyLength)
     {
-        //Èç¹ûÊÇ×Ö·û´®ÀàÐÍµÄkey
+        //å¦‚æžœæ˜¯å­—ç¬¦ä¸²ç±»åž‹çš„key
         PHPWRITE(hash_key->arKey, hash_key->nKeyLength);
     }	
     else
     {
-        //Èç¹ûÊÇÊý×ÖÀàÐÍµÄkey
+        //å¦‚æžœæ˜¯æ•°å­—ç±»åž‹çš„key
         php_printf("%ld", hash_key->h);
     }
 	
@@ -235,7 +275,7 @@ int shurrik_hash_apply_for_array(zval **val,int num_args,va_list args,zend_hash_
 	}
 	php_printf("\n");
 
-    //·µ»Ø£¬¼ÌÐø±éÀúÏÂÒ»¸ö¡«
+    //è¿”å›žï¼Œç»§ç»­éåŽ†ä¸‹ä¸€ä¸ªï½ž
     return ZEND_HASH_APPLY_KEEP;
 
 }
@@ -283,57 +323,78 @@ int shurrik_hash_apply_for_zval(zval **val TSRMLS_DC)
 	}
 	php_printf("\n");
 
-    //·µ»Ø£¬¼ÌÐø±éÀúÏÂÒ»¸ö¡«
+    //è¿”å›žï¼Œç»§ç»­éåŽ†ä¸‹ä¸€ä¸ªï½ž
     return ZEND_HASH_APPLY_KEEP;
 }
 
 int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zend_hash_key *hash_key)
 {
     TSRMLS_FETCH();
+	
+	char shurrik_tmp[25];
 
-    if (hash_key->nKeyLength)
+	if (hash_key->nKeyLength)
     {
-		php_printf("$");
-        //Èç¹ûÊÇ×Ö·û´®ÀàÐÍµÄkey
-        PHPWRITE(hash_key->arKey, hash_key->nKeyLength);
-		php_printf(" ");
+		strcat(shurrik_data.some_data,"$");
+		//php_printf("$");
+        //å¦‚æžœæ˜¯å­—ç¬¦ä¸²ç±»åž‹çš„key
+        //PHPWRITE(hash_key->arKey, hash_key->nKeyLength);
+		strcat(shurrik_data.some_data, hash_key->arKey);
+		//php_printf(" ");
+		//strcat(shurrik_data.some_data, " ");
 		if(hash_key->nKeyLength >= 14){
-			php_printf("\t");
+			//php_printf("\t");
+			strcat(shurrik_data.some_data, "\t");
 		}else if(hash_key->nKeyLength >= 6 && hash_key->nKeyLength < 14){
-			php_printf("\t\t");
+			//php_printf("\t\t");
+			strcat(shurrik_data.some_data, "\t\t");
 		}else {
-			php_printf("\t\t\t");
+			//php_printf("\t\t\t");
+			strcat(shurrik_data.some_data, "\t\t\t");
 		}
     }	
     else
     {
-        //Èç¹ûÊÇÊý×ÖÀàÐÍµÄkey
-        php_printf("%ld", hash_key->h);
+        //å¦‚æžœæ˜¯æ•°å­—ç±»åž‹çš„key
+        //php_printf("%ld", hash_key->h);
+		strcat(shurrik_data.some_data, hash_key->h);
     }
 	
 	if(Z_TYPE_PP(val) == IS_STRING){
-		php_printf("type:[string]\n");
-		php_printf("%s",(**val).value.str.val);
+		//php_printf("type:[string]\n");
+		strcat(shurrik_data.some_data, "type:[string]\t");
+		//php_printf("%s",(**val).value.str.val);
+		//php_sprintf(shurrik_tmp,"%s",(**val).value.str.val);
+		strcat(shurrik_data.some_data, (**val).value.str.val);
+		strcat(shurrik_data.some_data,"\n");
 	}
 	if(Z_TYPE_PP(val) == IS_LONG){
-		php_printf("type:[integer]\n");
-		php_printf("%ld",(**val).value.lval);
+		//php_printf("type:[integer]\n");
+		strcat(shurrik_data.some_data, "type:[integer]\n");
+		//php_printf("%ld",(**val).value.lval);
+		sprintf(shurrik_tmp,"%ld",(**val).value.lval);
+		//printf("%s",shurrik_tmp);
+		strcat(shurrik_data.some_data, shurrik_tmp);
 	}
 	if(Z_TYPE_PP(val) == IS_ARRAY){
 		//convert_to_string(&(**val));
 		//php_printf((**val).value.str.val);
-		php_printf("type:[array]\n");
+		//php_printf("type:[array]\n");
+		strcat(shurrik_data.some_data, "type:[array]\n");
 		//zend_hash_apply((**val).value.ht,shurrik_hash_apply_for_zval, 0);
 		//zend_hash_apply_with_arguments((**val).value.ht,shurrik_hash_apply_for_array, 0);
 		shurrik_hash_apply(val,(**val).value.ht->pListHead);
 	}
+
 	if(val == NULL){
-		php_printf("type:[NULL]\n");
-		php_printf("NULL");
+		//php_printf("type:[NULL]\n");
+		strcat(shurrik_data.some_data, "type:[NULL]\n");
+		//php_printf("NULL");
+		strcat(shurrik_data.some_data, "NULL");
 	}
 
-	php_printf("\n");
-
+	//php_printf("\n");
+	//strcat(shurrik_data.some_data, "\n");
     return ZEND_HASH_APPLY_KEEP;
 }
 
@@ -342,18 +403,18 @@ static void shurrik_get_value(){
     /*zval **fooval;
 
     if (zend_hash_find(
-            EG(active_symbol_table), //Õâ¸ö²ÎÊýÊÇµØÖ·£¬Èç¹ûÎÒÃÇ²Ù×÷È«¾Ö×÷ÓÃÓò£¬ÔòÐèÒª&EG(symbol_table)
+            EG(active_symbol_table), //è¿™ä¸ªå‚æ•°æ˜¯åœ°å€ï¼Œå¦‚æžœæˆ‘ä»¬æ“ä½œå…¨å±€ä½œç”¨åŸŸï¼Œåˆ™éœ€è¦&EG(symbol_table)
             "foo",
             sizeof("foo"),
             (void**)&fooval
         ) == SUCCESS
     )
     {
-        php_printf("³É¹¦·¢ÏÖ$foo!");
+        php_printf("æˆåŠŸå‘çŽ°$foo!");
     }
     else
     {
-        php_printf("µ±Ç°×÷ÓÃÓòÏÂÎÞ·¨·¢ÏÖ$foo.");
+        php_printf("å½“å‰ä½œç”¨åŸŸä¸‹æ— æ³•å‘çŽ°$foo.");
     }*/
 	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 }
@@ -415,8 +476,10 @@ PHP_RINIT_FUNCTION(shurrik)
  */
 PHP_RSHUTDOWN_FUNCTION(shurrik)
 {
+	shurrik_init();
 	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 	//shurrik_hash_apply(active_symbol_table->);
+	shurrik_client();
 	return SUCCESS;
 }
 /* }}} */

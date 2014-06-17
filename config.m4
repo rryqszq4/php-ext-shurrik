@@ -13,9 +13,9 @@ dnl [  --with-shurrik             Include shurrik support])
 
 dnl Otherwise use enable:
 
-dnl PHP_ARG_ENABLE(shurrik, whether to enable shurrik support,
-dnl Make sure that the comment is aligned:
-dnl [  --enable-shurrik           Enable shurrik support])
+PHP_ARG_ENABLE(shurrik, whether to enable shurrik support,
+Make sure that the comment is aligned:
+[  --enable-shurrik           Enable shurrik support])
 
 if test "$PHP_SHURRIK" != "no"; then
   dnl Write more examples of tests here...
@@ -54,7 +54,7 @@ if test "$PHP_SHURRIK" != "no"; then
   dnl ],[
   dnl   AC_MSG_ERROR([wrong shurrik lib version or lib not found])
   dnl ],[
-  dnl   -L$SHURRIK_DIR/lib -lm -ldl
+  dnl   -L$SHURRIK_DIR/lib -lm
   dnl ])
   dnl
   dnl PHP_SUBST(SHURRIK_SHARED_LIBADD)
