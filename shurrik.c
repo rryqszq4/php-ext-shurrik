@@ -39,17 +39,6 @@ ZEND_DECLARE_MODULE_GLOBALS(shurrik)
 /* True global resources - no need for thread safety here */
 static int le_shurrik;
 
-
-/* extension redirection functions  */
-zend_op_array* (*old_compile_file)(zend_file_handle* file_handle, int type TSRMLS_DC);
-zend_op_array* shurrik_compile_file(zend_file_handle*, int TSRMLS_DC);
-
-void (*shurrik_old_execute)(zend_op_array *op_array TSRMLS_DC);
-void shurrik_execute(zend_op_array *op_array TSRMLS_DC);
-
-void (*shurrik_old_execute_internal)(zend_execute_data *current_execute_data, int return_value_used TSRMLS_DC);
-void shurrik_execute_internal(zend_execute_data *execute_data TSRMLS_DC);
-
 /* {{{ shurrik_functions[]
  *
  * Every user visible function must have an entry in shurrik_functions[].
@@ -99,8 +88,7 @@ int shurrik_client(){
 
 	server_fifo_fd = open(SERVER_FIFO_NAME, O_WRONLY);
 	if (server_fifo_fd == -1){
-		//fprintf(stderr, "Sorry, no shurrik server\n");
-		php_printf("Sorry, no shurrik server\n");
+		fprintf(stderr, "Sorry, no shurrik server\n");
 		return 1;
 	}
 	
@@ -109,141 +97,6 @@ int shurrik_client(){
 	write(server_fifo_fd, &shurrik_data, sizeof(shurrik_data));
 	close(server_fifo_fd);
 	return 1;
-}
-
-char *shurrik_get_opname(zend_uchar opcode){
-	switch(opcode) {
-		case ZEND_NOP: return "ZEND_NOP"; break;
-		case ZEND_ADD: return "ZEND_ADD"; break;
-		case ZEND_SUB: return "ZEND_SUB"; break;
-		case ZEND_MUL: return "ZEND_MUL"; break;
-		case ZEND_DIV: return "ZEND_DIV"; break;
-		case ZEND_MOD: return "ZEND_MOD"; break;
-		case ZEND_SL: return "ZEND_SL"; break;
-		case ZEND_SR: return "ZEND_SR"; break;
-		case ZEND_CONCAT: return "ZEND_CONCAT"; break;
-		case ZEND_BW_OR: return "ZEND_BW_OR"; break;
-		case ZEND_BW_AND: return "ZEND_BW_AND"; break;
-		case ZEND_BW_XOR: return "ZEND_BW_XOR"; break;
-		case ZEND_BW_NOT: return "ZEND_BW_NOT"; break;
-		case ZEND_BOOL_NOT: return "ZEND_BOOL_NOT"; break;
-		case ZEND_BOOL_XOR: return "ZEND_BOOL_XOR"; break;
-		case ZEND_IS_IDENTICAL: return "ZEND_IS_IDENTICAL"; break;
-		case ZEND_IS_NOT_IDENTICAL: return "ZEND_IS_NOT_IDENTICAL"; break;
-		case ZEND_IS_EQUAL: return "ZEND_IS_EQUAL"; break;
-		case ZEND_IS_NOT_EQUAL: return "ZEND_IS_NOT_EQUAL"; break;
-		case ZEND_IS_SMALLER: return "ZEND_IS_SMALLER"; break;
-		case ZEND_IS_SMALLER_OR_EQUAL: return "ZEND_IS_SMALLER_OR_EQUAL"; break;
-		case ZEND_CAST: return "ZEND_CAST"; break;
-		case ZEND_QM_ASSIGN: return "ZEND_QM_ASSIGN"; break;
-		case ZEND_ASSIGN_ADD: return "ZEND_ASSIGN_ADD"; break;
-		case ZEND_ASSIGN_SUB: return "ZEND_ASSIGN_SUB"; break;
-		case ZEND_ASSIGN_MUL: return "ZEND_ASSIGN_MUL"; break;
-		case ZEND_ASSIGN_DIV: return "ZEND_ASSIGN_DIV"; break;
-		case ZEND_ASSIGN_MOD: return "ZEND_ASSIGN_MOD"; break;
-		case ZEND_ASSIGN_SL: return "ZEND_ASSIGN_SL"; break;
-		case ZEND_ASSIGN_SR: return "ZEND_ASSIGN_SR"; break;
-		case ZEND_ASSIGN_CONCAT: return "ZEND_ASSIGN_CONCAT"; break;
-		case ZEND_ASSIGN_BW_OR: return "ZEND_ASSIGN_BW_OR"; break;
-		case ZEND_ASSIGN_BW_AND: return "ZEND_ASSIGN_BW_AND"; break;
-		case ZEND_ASSIGN_BW_XOR: return "ZEND_ASSIGN_BW_XOR"; break;
-		case ZEND_PRE_INC: return "ZEND_PRE_INC"; break;
-		case ZEND_PRE_DEC: return "ZEND_PRE_DEC"; break;
-		case ZEND_POST_INC: return "ZEND_POST_INC"; break;
-		case ZEND_POST_DEC: return "ZEND_POST_DEC"; break;
-		case ZEND_ASSIGN: return "ZEND_ASSIGN"; break;
-		case ZEND_ASSIGN_REF: return "ZEND_ASSIGN_REF"; break;
-		case ZEND_ECHO: return "ZEND_ECHO"; break;
-		case ZEND_PRINT: return "ZEND_PRINT"; break;
-		case ZEND_JMP: return "ZEND_JMP"; break;
-		case ZEND_JMPZ: return "ZEND_JMPZ"; break;
-		case ZEND_JMPNZ: return "ZEND_JMPNZ"; break;
-		case ZEND_JMPZNZ: return "ZEND_JMPZNZ"; break;
-		case ZEND_JMPZ_EX: return "ZEND_JMPZ_EX"; break;
-		case ZEND_JMPNZ_EX: return "ZEND_JMPNZ_EX"; break;
-		case ZEND_CASE: return "ZEND_CASE"; break;
-		case ZEND_SWITCH_FREE: return "ZEND_SWITCH_FREE"; break;
-		case ZEND_BRK: return "ZEND_BRK"; break;
-		case ZEND_CONT: return "ZEND_CONT"; break;
-		case ZEND_BOOL: return "ZEND_BOOL"; break;
-		case ZEND_INIT_STRING: return "ZEND_INIT_STRING"; break;
-		case ZEND_ADD_CHAR: return "ZEND_ADD_CHAR"; break;
-		case ZEND_ADD_STRING: return "ZEND_ADD_STRING"; break;
-		case ZEND_ADD_VAR: return "ZEND_ADD_VAR"; break;
-		case ZEND_BEGIN_SILENCE: return "ZEND_BEGIN_SILENCE"; break;
-		case ZEND_END_SILENCE: return "ZEND_END_SILENCE"; break;
-		case ZEND_INIT_FCALL_BY_NAME: return "ZEND_INIT_FCALL_BY_NAME"; break;
-		case ZEND_DO_FCALL: return "ZEND_DO_FCALL"; break;
-		case ZEND_DO_FCALL_BY_NAME: return "ZEND_DO_FCALL_BY_NAME"; break;
-		case ZEND_RETURN: return "ZEND_RETURN"; break;
-		case ZEND_RECV: return "ZEND_RECV"; break;
-		case ZEND_RECV_INIT: return "ZEND_RECV_INIT"; break;
-		case ZEND_SEND_VAL: return "ZEND_SEND_VAL"; break;
-		case ZEND_SEND_VAR: return "ZEND_SEND_VAR"; break;
-		case ZEND_SEND_REF: return "ZEND_SEND_REF"; break;
-		case ZEND_NEW: return "ZEND_NEW"; break;
-		case ZEND_FREE: return "ZEND_FREE"; break;
-		case ZEND_INIT_ARRAY: return "ZEND_INIT_ARRAY"; break;
-		case ZEND_ADD_ARRAY_ELEMENT: return "ZEND_ADD_ARRAY_ELEMENT"; break;
-		case ZEND_INCLUDE_OR_EVAL: return "ZEND_INCLUDE_OR_EVAL"; break;
-		case ZEND_UNSET_VAR: return "ZEND_UNSET_VAR"; break;
-		case ZEND_UNSET_DIM: return "ZEND_UNSET_DIM"; break;
-		case ZEND_UNSET_OBJ: return "ZEND_UNSET_OBJ"; break;
-		case ZEND_FE_RESET: return "ZEND_FE_RESET"; break;
-		case ZEND_FE_FETCH: return "ZEND_FE_FETCH"; break;
-		case ZEND_EXIT: return "ZEND_EXIT"; break;
-		case ZEND_FETCH_R: return "ZEND_FETCH_R"; break;
-		case ZEND_FETCH_DIM_R: return "ZEND_FETCH_DIM_R"; break;
-		case ZEND_FETCH_OBJ_R: return "ZEND_FETCH_OBJ_R"; break;
-		case ZEND_FETCH_W: return "ZEND_FETCH_W"; break;
-		case ZEND_FETCH_DIM_W: return "ZEND_FETCH_DIM_W"; break;
-		case ZEND_FETCH_OBJ_W: return "ZEND_FETCH_OBJ_W"; break;
-		case ZEND_FETCH_RW: return "ZEND_FETCH_RW"; break;
-		case ZEND_FETCH_DIM_RW: return "ZEND_FETCH_DIM_RW"; break;
-		case ZEND_FETCH_OBJ_RW: return "ZEND_FETCH_OBJ_RW"; break;
-		case ZEND_FETCH_IS: return "ZEND_FETCH_IS"; break;
-		case ZEND_FETCH_DIM_IS: return "ZEND_FETCH_DIM_IS"; break;
-		case ZEND_FETCH_OBJ_IS: return "ZEND_FETCH_OBJ_IS"; break;
-		case ZEND_FETCH_FUNC_ARG: return "ZEND_FETCH_FUNC_ARG"; break;
-		case ZEND_FETCH_DIM_FUNC_ARG: return "ZEND_FETCH_DIM_FUNC_ARG"; break;
-		case ZEND_FETCH_OBJ_FUNC_ARG: return "ZEND_FETCH_OBJ_FUNC_ARG"; break;
-		case ZEND_FETCH_UNSET: return "ZEND_FETCH_UNSET"; break;
-		case ZEND_FETCH_DIM_UNSET: return "ZEND_FETCH_DIM_UNSET"; break;
-		case ZEND_FETCH_OBJ_UNSET: return "ZEND_FETCH_OBJ_UNSET"; break;
-		case ZEND_FETCH_DIM_TMP_VAR: return "ZEND_FETCH_DIM_TMP_VAR"; break;
-		case ZEND_FETCH_CONSTANT: return "ZEND_FETCH_CONSTANT"; break;
-		case ZEND_EXT_STMT: return "ZEND_EXT_STMT"; break;
-		case ZEND_EXT_FCALL_BEGIN: return "ZEND_EXT_FCALL_BEGIN"; break;
-		case ZEND_EXT_FCALL_END: return "ZEND_EXT_FCALL_END"; break;
-		case ZEND_EXT_NOP: return "ZEND_EXT_NOP"; break;
-		case ZEND_TICKS: return "ZEND_TICKS"; break;
-		case ZEND_SEND_VAR_NO_REF: return "ZEND_SEND_VAR_NO_REF"; break;
-		case ZEND_CATCH: return "ZEND_CATCH"; break;
-		case ZEND_THROW: return "ZEND_THROW"; break;
-		case ZEND_FETCH_CLASS: return "ZEND_FETCH_CLASS"; break;
-		case ZEND_CLONE: return "ZEND_CLONE"; break;
-		case ZEND_INIT_METHOD_CALL: return "ZEND_INIT_METHOD_CALL"; break;
-		case ZEND_INIT_STATIC_METHOD_CALL: return "ZEND_INIT_STATIC_METHOD_CALL"; break;
-		case ZEND_ISSET_ISEMPTY_VAR: return "ZEND_ISSET_ISEMPTY_VAR"; break;
-		case ZEND_ISSET_ISEMPTY_DIM_OBJ: return "ZEND_ISSET_ISEMPTY_DIM_OBJ"; break;
-		case ZEND_PRE_INC_OBJ: return "ZEND_PRE_INC_OBJ"; break;
-		case ZEND_PRE_DEC_OBJ: return "ZEND_PRE_DEC_OBJ"; break;
-		case ZEND_POST_INC_OBJ: return "ZEND_POST_INC_OBJ"; break;
-		case ZEND_POST_DEC_OBJ: return "ZEND_POST_DEC_OBJ"; break;
-		case ZEND_ASSIGN_OBJ: return "ZEND_ASSIGN_OBJ"; break;
-		case ZEND_INSTANCEOF: return "ZEND_INSTANCEOF"; break;
-		case ZEND_DECLARE_CLASS: return "ZEND_DECLARE_CLASS"; break;
-		case ZEND_DECLARE_INHERITED_CLASS: return "ZEND_DECLARE_INHERITED_CLASS"; break;
-		case ZEND_DECLARE_FUNCTION: return "ZEND_DECLARE_FUNCTION"; break;
-		case ZEND_RAISE_ABSTRACT_ERROR: return "ZEND_RAISE_ABSTRACT_ERROR"; break;
-		case ZEND_ADD_INTERFACE: return "ZEND_ADD_INTERFACE"; break;
-		case ZEND_VERIFY_ABSTRACT_CLASS: return "ZEND_VERIFY_ABSTRACT_CLASS"; break;
-		case ZEND_ASSIGN_DIM: return "ZEND_ASSIGN_DIM"; break;
-		case ZEND_ISSET_ISEMPTY_PROP_OBJ: return "ZEND_ISSET_ISEMPTY_PROP_OBJ"; break;
-		case ZEND_HANDLE_EXCEPTION: return "ZEND_HANDLE_EXCEPTION"; break;
-		case ZEND_USER_OPCODE: return "ZEND_USER_OPCODE"; break;
-		default: return "UNKNOWN"; break;
-	}
 }
 
 //遍历hash表
@@ -476,9 +329,10 @@ int shurrik_hash_apply_for_zval(zval **val TSRMLS_DC)
 
 int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zend_hash_key *hash_key)
 {
-	char shurrik_tmp[25];
-	TSRMLS_FETCH();
+    TSRMLS_FETCH();
 	
+	char shurrik_tmp[25];
+
 	if (hash_key->nKeyLength)
     {
 		strcat(shurrik_data.some_data,"$");
@@ -516,12 +370,11 @@ int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zen
 	}
 	if(Z_TYPE_PP(val) == IS_LONG){
 		//php_printf("type:[integer]\n");
-		strcat(shurrik_data.some_data, "type:[integer]\t");
+		strcat(shurrik_data.some_data, "type:[integer]\n");
 		//php_printf("%ld",(**val).value.lval);
 		sprintf(shurrik_tmp,"%ld",(**val).value.lval);
 		//printf("%s",shurrik_tmp);
 		strcat(shurrik_data.some_data, shurrik_tmp);
-		strcat(shurrik_data.some_data,"\n");
 	}
 	if(Z_TYPE_PP(val) == IS_ARRAY){
 		//convert_to_string(&(**val));
@@ -532,9 +385,7 @@ int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zen
 		//zend_hash_apply_with_arguments((**val).value.ht,shurrik_hash_apply_for_array, 0);
 		shurrik_hash_apply(val,(**val).value.ht->pListHead);
 	}
-	if (Z_TYPE_PP(val) == IS_OBJECT){
-		strcat(shurrik_data.some_data, "type:[object]\n");
-	}
+
 	if(val == NULL){
 		//php_printf("type:[NULL]\n");
 		strcat(shurrik_data.some_data, "type:[NULL]\n");
@@ -545,105 +396,6 @@ int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zen
 	//php_printf("\n");
 	//strcat(shurrik_data.some_data, "\n");
     return ZEND_HASH_APPLY_KEEP;
-}
-
-int shurrik_hash_apply_for_function(HashTable *ht,zend_op_array *op_a){
-	Bucket *p;
-	zend_function *f;
-	zend_op_array op_array;
-	zval z;
-	int i;
-
-	p = ht->pListHead;
-
-	if (op_a == NULL){
-		php_printf("null \n");
-	}
-	while (p != NULL){
-		f = p->pData;
-		if (f->type == ZEND_USER_FUNCTION){
-			//op_a = EG(active_op_array);
-			op_array = f->op_array;
-			php_printf("%s[%lx] <==> %s\n",p->arKey,p->h,op_array.filename);
-			php_printf("%d\n",op_array.line_start);
-			php_printf("%d\n",op_array.line_end);
-			php_printf("%d\n",op_array.backpatch_count);
-			//z = op_array.opcodes->result.u.constant;
-			for (i = 0; i < op_array.last; i++){
-				php_printf("%d\n",op_array.opcodes[i].opcode);
-			}
-			php_printf("%d\n",&(op_array.refcount));
-		}
-		p = p->pListNext;
-	}
-	
-	return 1;
-}
-
-int shurrik_function_test(zend_function *function TSRMLS_DC){
-	printf("%d\n",function->type);
-	return 0;
-
-}
-
-zend_op_array *shurrik_compile_file(zend_file_handle *file_handle, int type TSRMLS_DC){
-	zend_op_array *op_array;
-	zval *z;
-	int i;
-	php_printf("%s\n",file_handle->filename);
-	op_array = old_compile_file(file_handle, type TSRMLS_CC);
-	//char tmp[16];
-
-	if (op_array){
-		php_printf("%s\t%s\t%s\t%s\t\n","id","line","opcode","op1");
-		for (i = 0; i < op_array->last; i++){
-				php_printf("%d\t",i);
-				php_printf("%d\t",op_array->opcodes[i].lineno);
-				php_printf("%s\t",shurrik_get_opname(op_array->opcodes[i].opcode));
-				//php_printf("%d\t",op_array->opcodes[i].opcode);
-				/*if (op_array->opcodes[i].op1.u.constant.type == IS_STRING){
-					//php_printf("%d",op_array->opcodes[i].op1.u.constant.value.str.val);
-					//php_printf("%s\n",tmp);
-					if (op_array->opcodes[i].op1.u.constant.value.str.val){
-						sprintf(tmp,"%d",op_array->opcodes[i].op1.u.constant.value.str.val);
-						php_printf("%s\n",tmp);
-						//php_printf("\"%d\"\n",op_array->opcodes[i].op1.u.constant.value.str.val);
-					}else {
-						php_printf("...\n");
-					}
-				}else {
-					php_printf("...\n");
-				}*/
-				z = &op_array->opcodes[i].op1.u.constant;
-				if(z->type == IS_STRING){
-					//sprintf(tmp,"%d",z->value.str.val);
-					//php_printf("<<<%s>>>\n",tmp);
-					//php_printf("<<<%p>>>\t",z->value.str.val);
-					//php_printf("<<<%d>>>\t",(z->value.str.val > 0xff));
-					if (z->value.str.val > 0xff){
-						php_printf("\"%s\"\n",z->value.str.val);
-					}else {
-						php_printf("\"...\"\n");
-					}
-				}else if (z->type == IS_NULL){
-					php_printf("NULL\n");
-				}else if (z->type == IS_LONG || z->type == IS_BOOL){
-					php_printf("%d\n",z->value.lval);
-				}else if (z->type == IS_DOUBLE){
-					php_printf("%f\n",z->value.dval);
-				}else if (z->type == IS_ARRAY){
-					php_printf("Array\n");
-				}else if (z->type == IS_OBJECT){
-					php_printf("Object\n");
-				}else if (z->type == IS_RESOURCE){
-					php_printf("Resource\n");
-				}else {
-					php_printf("unknown\n");
-				}
-		}
-	}
-
-	return op_array;
 }
 
 static void shurrik_get_value(){
@@ -664,8 +416,7 @@ static void shurrik_get_value(){
     {
         php_printf("当前作用域下无法发现$foo.");
     }*/
-	//zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
-	//zend_hash_apply_with_arguments(EG(function_table),shurrik_hash_apply_for_zval_and_key, 0);
+	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 }
 
 /* {{{ PHP_INI
@@ -696,10 +447,6 @@ PHP_MINIT_FUNCTION(shurrik)
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
-
-	old_compile_file = zend_compile_file;
-	zend_compile_file = shurrik_compile_file;
-
 	return SUCCESS;
 }
 /* }}} */
@@ -730,10 +477,8 @@ PHP_RINIT_FUNCTION(shurrik)
 PHP_RSHUTDOWN_FUNCTION(shurrik)
 {
 	shurrik_init();
-	//zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
-	//zend_hash_apply_with_argument(EG(function_table),shurrik_hash_apply_for_function, 0);
-	//shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
-	//zend_hash_apply(EG(function_table),(apply_func_t) shurrik_function_test TSRMLS_CC);
+	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
+	//shurrik_hash_apply(active_symbol_table->);
 	shurrik_client();
 	return SUCCESS;
 }
@@ -780,7 +525,6 @@ PHP_FUNCTION(confirm_shurrik_compiled)
    function definition, where the functions purpose is also documented. Please 
    follow this convention for the convenience of others editing your code.
 */
-
 
 PHP_FUNCTION(say)
 {

@@ -12,27 +12,6 @@ $test_array = array('c'=>'c','0','key'=>'value',array('abc'=>'haha','test'=>'tes
 
 
 
-class TestA{
-
-	public function __construct(){
-		$abc = 123;
-		//echo $abc;
-	}
-}
-
-$test_a = new TestA();
-
-function test_b(){
-	$test_bb = 123;
-	return $test_bb;
-
-}
-
-function test_c($a = '123'){
-	$b = 'abc';
-	return $a + $b;
-}
 
 
-test_b();
 ?>
