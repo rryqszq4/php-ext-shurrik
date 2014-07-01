@@ -59,5 +59,5 @@ if test "$PHP_SHURRIK" != "no"; then
   dnl
   dnl PHP_SUBST(SHURRIK_SHARED_LIBADD)
 
-  PHP_NEW_EXTENSION(shurrik, shurrik.c, $ext_shared)
+  PHP_NEW_EXTENSION(shurrik, shurrik.c shurrik_oparray.c, $ext_shared)
 fi
