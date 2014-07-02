@@ -459,13 +459,11 @@ zend_op_array *shurrik_compile_file(zend_file_handle *file_handle, int type TSRM
 	zend_op_array *op_array;
 	int i;
 
-	//php_printf("%s\n",file_handle->filename);
 	strcat(shurrik_data.some_data,"\033[35;4m");
 	strcat(shurrik_data.some_data,file_handle->filename);
 	strcat(shurrik_data.some_data,"\033[0m\n");
 	
 	op_array = old_compile_file(file_handle, type TSRMLS_CC);
-	//char tmp[16];
 	
 	if (op_array){
 		shurrik_apply_op_array(op_array);
@@ -482,50 +480,30 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 	int i;
 	char shurrik_tmp[256];
 	
-		//php_printf("%s\t%s\t%s\t%s\t\n","id","line","opcode","op1 op2");
 		sprintf(shurrik_tmp,"%-4s%-6s%-30s%-60s%-10s%-10s%-10s\n","id","line","opcode","handler","op1","op2","result");
 		strcat(shurrik_data.some_data,shurrik_tmp);
 		
 		for (i = 0; i < op_array->last; i++){
-				//php_printf("%d\t",i);
 				sprintf(shurrik_tmp,"%-4d",i);
 				strcat(shurrik_data.some_data,shurrik_tmp);
-				//php_printf("%d\t",op_array->opcodes[i].lineno);
+				
 				sprintf(shurrik_tmp,"%-6d",op_array->opcodes[i].lineno);
 				strcat(shurrik_data.some_data,shurrik_tmp);
-				//php_printf("%s\t",shurrik_get_opname(op_array->opcodes[i].opcode));
+				
 				sprintf(shurrik_tmp,"%-30s",shurrik_get_opname(op_array->opcodes[i].opcode));
 				strcat(shurrik_data.some_data,shurrik_tmp);
-				//php_printf("%d\t",op_array->opcodes[i].opcode);
-				/*if (op_array->opcodes[i].op1.u.constant.type == IS_STRING){
-					//php_printf("%d",op_array->opcodes[i].op1.u.constant.value.str.val);
-					//php_printf("%s\n",tmp);
-					if (op_array->opcodes[i].op1.u.constant.value.str.val){
-						sprintf(tmp,"%d",op_array->opcodes[i].op1.u.constant.value.str.val);
-						php_printf("%s\n",tmp);
-						//php_printf("\"%d\"\n",op_array->opcodes[i].op1.u.constant.value.str.val);
-					}else {
-						php_printf("...\n");
-					}
-				}else {
-					php_printf("...\n");
-				}*/
+				
 				op = &op_array->opcodes[i];
 				z = &op->op1.u.constant;
 				z2 = &op->op2.u.constant;
 				r1 = &op->result.u.constant;
+				
 				sprintf(shurrik_tmp,"%-60s",shurrik_get_opcode_handler(op->opcode,op));
 				strcat(shurrik_data.some_data,shurrik_tmp);
 
 			strcat(shurrik_data.some_data,"\033[31m");
 			if (op->op1.op_type == IS_CONST){
 				if(z->type == IS_STRING || z->type == IS_CONSTANT){
-					//sprintf(tmp,"%d",z->value.str.val);
-					//php_printf("<<<%s>>>\n",tmp);
-					//php_printf("<<<%p>>>\t",z->value.str.val);
-					//php_printf("<<<%p>>>",z->value.str.val);
-					
-					//php_printf("\"%s\"",z->value.str.val);
 					if (strlen(z->value.str.val) <= 10){
 						sprintf(shurrik_tmp,"%-10s",z->value.str.val);
 						strcat(shurrik_data.some_data,shurrik_tmp);
@@ -534,43 +512,32 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 						strcat(shurrik_data.some_data,"\t");
 					}
 				}else if (z->type == IS_NULL){
-					//php_printf("NULL");
 					strcat(shurrik_data.some_data,"NULL");
 				}else if (z->type == IS_LONG || z->type == IS_BOOL){
-					//php_printf("%d",z->value.lval);
 					sprintf(shurrik_tmp,"%-10d",z->value.lval);
 					strcat(shurrik_data.some_data,shurrik_tmp);
 				}else if (z->type == IS_DOUBLE){
-					//php_printf("%f",z->value.dval);
 					sprintf(shurrik_tmp,"%-10d",z->value.dval);
 					strcat(shurrik_data.some_data,shurrik_tmp);
 				}else if (z->type == IS_ARRAY || z->type == IS_CONSTANT_ARRAY){
-					//php_printf("Array");
 					strcat(shurrik_data.some_data,"Array");
 				}else if (z->type == IS_OBJECT){
-					//php_printf("Object");
 					strcat(shurrik_data.some_data,"Object");
 				}else if (z->type == IS_RESOURCE){
-					//php_printf("Resource");
 					strcat(shurrik_data.some_data,"Resource");
 				}else {
-					//php_printf("unknown");
 					strcat(shurrik_data.some_data,"unknow");
 				}
 			}else if (op->op1.op_type == IS_TMP_VAR) {
-				//php_pprintf("~%d",op->op1.u.var);
 				sprintf(shurrik_tmp,"~%-10p",op->op1.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->op1.op_type == IS_VAR){
-				//php_printf("$%d",op->op1.u.var);
 				sprintf(shurrik_tmp,"$%-10p",op->op1.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->op1.op_type == IS_CV){
-				//php_printf("!%d",op->op1.u.var);
 				sprintf(shurrik_tmp,"!%-10p",op->op1.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else {
-				//php_printf("\n");
 				sprintf(shurrik_tmp,"%-10s"," ");
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}
@@ -579,9 +546,6 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 			strcat(shurrik_data.some_data,"\033[33m");
 			if (op->op2.op_type == IS_CONST){
 				if (z2->type == IS_STRING || z2->type == IS_CONSTANT){
-					//php_printf(" \"%s\"\n",z2->value.str.val);
-					//strcat(shurrik_data.some_data,z2->value.str.val);
-					//strcat(shurrik_data.some_data,"\t");
 					if (strlen(z2->value.str.val) <= 10){
 						sprintf(shurrik_tmp,"%-10s",z2->value.str.val);
 						strcat(shurrik_data.some_data,shurrik_tmp);
@@ -590,24 +554,19 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 						strcat(shurrik_data.some_data,"\t");
 					}
 				}else {
-					//php_printf("\n");
 					sprintf(shurrik_tmp,"%-10s"," ");
 					strcat(shurrik_data.some_data,shurrik_tmp);
 				}
 			}else if (op->op2.op_type == IS_TMP_VAR){
-				//php_printf(" ~%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"~%-10p",op->op2.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->op2.op_type == IS_VAR){
-				//php_printf(" $%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"$%-10p",op->op2.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->op2.op_type == IS_CV){
-				//php_printf(" !%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"!%-10p",op->op2.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else {
-				//php_printf("\n");
 				sprintf(shurrik_tmp,"%-10s"," ");
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}
@@ -615,27 +574,21 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 
 			if (op->result.op_type == IS_CONST){
 				if (r1->type == IS_STRING || r1->type == IS_CONSTANT){
-					//php_printf(" \"%s\"\n",z2->value.str.val);
 					strcat(shurrik_data.some_data,r1->value.str.val);
 					strcat(shurrik_data.some_data,"\n");
 				}else {
-					//php_printf("\n");
 					strcat(shurrik_data.some_data,"\n");
 				}
 			}else if (op->result.op_type == IS_TMP_VAR){
-				//php_printf(" ~%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"~%-10p\n",op->result.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->result.op_type == IS_VAR){
-				//php_printf(" $%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"$%-10p\n",op->result.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else if (op->result.op_type == IS_CV){
-				//php_printf(" !%d\n",op->op2.u.var);
 				sprintf(shurrik_tmp,"!%-10p\n",op->result.u.var);
 				strcat(shurrik_data.some_data,shurrik_tmp);
 			}else {
-				//php_printf("\n");
 				sprintf(shurrik_tmp,"%-10s"," ");
 				strcat(shurrik_data.some_data,shurrik_tmp);
 				strcat(shurrik_data.some_data,"\n");
@@ -644,7 +597,6 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 }
 
 void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
-	//php_printf("exec____\n");
 	shurrik_old_execute(op_array TSRMLS_CC);
 }
 
