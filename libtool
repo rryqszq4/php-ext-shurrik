@@ -44,7 +44,7 @@ available_tags=""
 
 # ### BEGIN LIBTOOL CONFIG
 
-# Libtool was configured on host localhost:
+# Libtool was configured on host localhost.localdomain:
 
 # Shell to use when invoking shell scripts.
 SHELL="/bin/sh"

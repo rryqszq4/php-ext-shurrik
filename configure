@@ -4493,7 +4493,7 @@ if test "$PHP_SHURRIK" != "no"; then
 
   ac_extra=
 
-  if test "shurrik_oparray.c" != "shared" && test "shurrik_oparray.c" != "yes" && test "$ext_shared" != "cli"; then
+  if test "$ext_shared" != "shared" && test "$ext_shared" != "yes" && test "" != "cli"; then
     PHP_SHURRIK_SHARED=no
 
 
@@ -4515,7 +4515,7 @@ if test "$PHP_SHURRIK" != "no"; then
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
 
       IFS=.
       set $ac_src
@@ -4539,11 +4539,11 @@ EOF
 
 
     EXT_STATIC="$EXT_STATIC shurrik"
-    if test "shurrik_oparray.c" != "nocli"; then
+    if test "$ext_shared" != "nocli"; then
       EXT_CLI_STATIC="$EXT_CLI_STATIC shurrik"
     fi
   else
-    if test "shurrik_oparray.c" = "shared" || test "shurrik_oparray.c" = "yes"; then
+    if test "$ext_shared" = "shared" || test "$ext_shared" = "yes"; then
       PHP_SHURRIK_SHARED=yes
 
   case "" in
@@ -4564,7 +4564,7 @@ EOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
 
       IFS=.
       set $ac_src
@@ -4670,7 +4670,7 @@ _ACEOF
     fi
   fi
 
-  if test "shurrik_oparray.c" != "shared" && test "shurrik_oparray.c" != "yes" && test "$ext_shared" = "cli"; then
+  if test "$ext_shared" != "shared" && test "$ext_shared" != "yes" && test "" = "cli"; then
     PHP_SHURRIK_SHARED=no
     case "$PHP_SAPI" in
       cgi|embed)
@@ -4694,7 +4694,7 @@ _ACEOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
 
       IFS=.
       set $ac_src
@@ -4740,7 +4740,7 @@ EOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
 
       IFS=.
       set $ac_src

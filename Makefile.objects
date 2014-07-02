@@ -1,5 +1,7 @@
 shurrik.lo: /source/php-5.3.27/ext/shurrik/shurrik.c
 	$(LIBTOOL) --mode=compile $(CC)  -I. -I/source/php-5.3.27/ext/shurrik $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /source/php-5.3.27/ext/shurrik/shurrik.c -o shurrik.lo 
+shurrik_oparray.lo: /source/php-5.3.27/ext/shurrik/shurrik_oparray.c
+	$(LIBTOOL) --mode=compile $(CC)  -I. -I/source/php-5.3.27/ext/shurrik $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /source/php-5.3.27/ext/shurrik/shurrik_oparray.c -o shurrik_oparray.lo 
 $(phplibdir)/shurrik.la: ./shurrik.la
 	$(LIBTOOL) --mode=install cp ./shurrik.la $(phplibdir)
 

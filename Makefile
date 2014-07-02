@@ -11,7 +11,7 @@ SHLIB_DL_SUFFIX_NAME = so
 ZEND_EXT_TYPE = zend_extension
 RE2C = exit 0;
 AWK = gawk
-shared_objects_shurrik = shurrik.lo
+shared_objects_shurrik = shurrik.lo shurrik_oparray.lo
 PHP_PECL_EXTENSION = shurrik
 PHP_MODULES = $(phplibdir)/shurrik.la
 PHP_ZEND_EX =
@@ -163,6 +163,8 @@ distclean: clean
 .NOEXPORT:
 shurrik.lo: /source/php-5.3.27/ext/shurrik/shurrik.c
 	$(LIBTOOL) --mode=compile $(CC)  -I. -I/source/php-5.3.27/ext/shurrik $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /source/php-5.3.27/ext/shurrik/shurrik.c -o shurrik.lo 
+shurrik_oparray.lo: /source/php-5.3.27/ext/shurrik/shurrik_oparray.c
+	$(LIBTOOL) --mode=compile $(CC)  -I. -I/source/php-5.3.27/ext/shurrik $(COMMON_FLAGS) $(CFLAGS_CLEAN) $(EXTRA_CFLAGS)  -c /source/php-5.3.27/ext/shurrik/shurrik_oparray.c -o shurrik_oparray.lo 
 $(phplibdir)/shurrik.la: ./shurrik.la
 	$(LIBTOOL) --mode=install cp ./shurrik.la $(phplibdir)
 

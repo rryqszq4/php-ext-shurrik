@@ -4515,7 +4515,7 @@ if test "$PHP_SHURRIK" != "no"; then
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
   
       IFS=.
       set $ac_src
@@ -4564,7 +4564,7 @@ EOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
   
       IFS=.
       set $ac_src
@@ -4694,7 +4694,7 @@ _ACEOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
   
       IFS=.
       set $ac_src
@@ -4740,7 +4740,7 @@ EOF
 
 
   old_IFS=$IFS
-  for ac_src in shurrik.c; do
+  for ac_src in shurrik.c shurrik_oparray.c; do
   
       IFS=.
       set $ac_src
