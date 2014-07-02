@@ -22,7 +22,7 @@ $ ./shurrik_server
 
 Run test and will be tracing
 ~~~ sh
-$ php tests/
+$ php tests/002.php
 ~~~
 ~~~ sh
 $ ./shurrik_server
