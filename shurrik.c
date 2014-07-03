@@ -30,8 +30,13 @@
 #include "shurrik_oparray.h"
 #include <ctype.h>
 
+#define EXEC_BUFFER_SIZE 1024*256
 
 ShurrikData shurrik_data;
+char  exec_user_data[EXEC_BUFFER_SIZE - 1];
+char  exec_internal_data[EXEC_BUFFER_SIZE - 1];
+char shurrik_exec_tmp[256];
+char shurrik_user_tmp[256];
 
 /* If you declare any globals in php_shurrik.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(shurrik)
@@ -45,10 +50,10 @@ zend_op_array* (*old_compile_file)(zend_file_handle* file_handle, int type TSRML
 zend_op_array* shurrik_compile_file(zend_file_handle*, int TSRMLS_DC);
 
 void (*shurrik_old_execute)(zend_op_array *op_array TSRMLS_DC);
-void shurrik_execute(zend_op_array *op_array TSRMLS_DC);
+void shurrik_execute(zend_op_array* TSRMLS_DC);
 
-void (*shurrik_old_execute_internal)(zend_execute_data *current_execute_data, int return_value_used TSRMLS_DC);
-void shurrik_execute_internal(zend_execute_data *execute_data TSRMLS_DC);
+void (*shurrik_old_execute_internal)(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC);
+void shurrik_execute_internal(zend_execute_data*,int TSRMLS_DC);
 
 /* {{{ shurrik_functions[]
  *
@@ -596,8 +601,67 @@ void shurrik_apply_op_array(zend_op_array *op_array){
 		}
 }
 
+void shurrik_internal_cat_opline(zend_op *opline){
+	char shurrik_tmp[256];
+		
+	if (opline->op1.op_type == IS_CONST){
+		sprintf(shurrik_tmp,"%d",opline->lineno);
+		strcat(shurrik_data.some_data,shurrik_tmp);
+		strcat(shurrik_data.some_data,"\t");
+		strcat(shurrik_data.some_data,opline->op1.u.constant.value.str.val);
+		strcat(shurrik_data.some_data,"\n");
+	}
+}
+
+void shurrik_user_cat_opline(zend_op *opline){
+	char shurrik_tmp[256];
+		
+	if (opline->op1.op_type == IS_CONST){
+		if (strcmp(shurrik_get_opname(opline->opcode),"ZEND_DO_FCALL") == 0){
+			sprintf(shurrik_tmp,"%d",opline->lineno);
+			strcat(shurrik_data.some_data,shurrik_tmp);
+			strcat(shurrik_data.some_data,"\t");
+			strcat(shurrik_data.some_data,opline->op1.u.constant.value.str.val);
+			strcat(shurrik_data.some_data,"\n");
+		}
+	}
+}
+
 void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
+	int i;
+	char shurrik_tmp[256];
+
+	/*if (strcmp(shurrik_user_tmp,op_array->filename) != 0){
+		sprintf(shurrik_user_tmp,op_array->filename);
+		strcat(shurrik_data.some_data,shurrik_user_tmp);
+		sprintf(shurrik_tmp,"\n%s\t%s\n","line","function");
+		strcat(shurrik_data.some_data,shurrik_tmp);
+	}
+
+	for (i = 0; i < op_array->last; i++){
+		shurrik_user_cat_opline(&op_array->opcodes[i]);
+	}*/
+	
 	shurrik_old_execute(op_array TSRMLS_CC);
+}
+
+void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC){
+	char shurrik_tmp[256];
+
+	if (strcmp(shurrik_exec_tmp,execute_data_ptr->op_array->filename) != 0){
+		sprintf(shurrik_exec_tmp,execute_data_ptr->op_array->filename);
+		strcat(shurrik_data.some_data,shurrik_exec_tmp);
+		sprintf(shurrik_tmp,"\n%s\t%s\n","line","function");
+		strcat(shurrik_data.some_data,shurrik_tmp);
+	}
+
+	shurrik_internal_cat_opline(execute_data_ptr->opline);
+	
+	if (!shurrik_old_execute_internal){
+		execute_internal(execute_data_ptr, return_value_used TSRMLS_CC);
+	}else {
+		shurrik_old_execute_internal(execute_data_ptr , return_value_used TSRMLS_CC);
+	}
 }
 
 static void shurrik_get_value(){
@@ -658,6 +722,9 @@ PHP_MINIT_FUNCTION(shurrik)
 
 	shurrik_old_execute = zend_execute;	
 	zend_execute = shurrik_execute;
+
+	shurrik_old_execute_internal = zend_execute_internal;
+	zend_execute_internal = shurrik_execute_internal;
 
 	return SUCCESS;
 }
