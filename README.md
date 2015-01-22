@@ -6,6 +6,7 @@ Shurrik is a PHP extension, used for testing PHP kernel
 ## Environment
 
 Linux localhost 2.6.32-279.el6.i686 #1 SMP Fri Jun 22 10:59:55 UTC 2012 i686 i686 i386 GNU/Linux
+
 PHP 5.3.27
 
 ## Building
