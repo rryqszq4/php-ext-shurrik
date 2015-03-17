@@ -26,7 +26,7 @@ $ ./shurrik_server
 
 ## Example  trace opcode
 
-Run test and will be tracing
+Run test and will be tracing in cli
 ~~~ sh
 $ php tests/002.php
 ~~~
@@ -42,3 +42,9 @@ id  line  opcode        handler                             op1       op2       
 
 ==================== end ====================
 ~~~
+
+Run in web cgi , this is a app test in yaf
+![image](https://github.com/rryqszq4/shurrik/blob/master/EXT_yaf_1.png)
+
+
+
