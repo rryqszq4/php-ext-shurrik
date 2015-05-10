@@ -55,6 +55,13 @@ void shurrik_execute(zend_op_array* TSRMLS_DC);
 void (*shurrik_old_execute_internal)(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC);
 void shurrik_execute_internal(zend_execute_data*,int TSRMLS_DC);
 
+
+int shurrik_hash_apply(zval **val, Bucket *bHead);
+int shurrik_hash_apply_for_zval(zval **val TSRMLS_DC);
+int shurrik_hash_apply_for_array(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
+int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
+
+
 /* {{{ shurrik_functions[]
  *
  * Every user visible function must have an entry in shurrik_functions[].
@@ -717,8 +724,8 @@ PHP_MINIT_FUNCTION(shurrik)
 
 	//shurrik_init();
 
-	old_compile_file = zend_compile_file;
-	zend_compile_file = shurrik_compile_file;
+	//old_compile_file = zend_compile_file;
+	//zend_compile_file = shurrik_compile_file;
 
 	shurrik_old_execute = zend_execute;	
 	zend_execute = shurrik_execute;
@@ -757,9 +764,9 @@ PHP_RINIT_FUNCTION(shurrik)
  */
 PHP_RSHUTDOWN_FUNCTION(shurrik)
 {
-	//zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
+	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 	//zend_hash_apply_with_argument(EG(function_table),shurrik_hash_apply_for_function, 0);
-	//shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
+	shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
 	//zend_hash_apply(EG(function_table),(apply_func_t) shurrik_function_test TSRMLS_CC);
 	shurrik_client();
 	return SUCCESS;
