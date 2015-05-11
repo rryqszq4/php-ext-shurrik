@@ -682,6 +682,7 @@ static const char *shurrik_get_base_filename(const char *filename){
 
 static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
 	zend_execute_data *data;
+	HashTable *ht;
 	const char		*func = NULL;
 	const char 		*cls = NULL;
 	char 			*ret = NULL;
@@ -690,10 +691,13 @@ static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
 
 	data = EG(current_execute_data);
 
-	//shurrik_dump_zend_execute_data(data);
+	shurrik_dump_zend_execute_data(data);
+	php_printf("%p\n",EG(active_symbol_table));
+	php_printf("%p\n",&EG(symbol_table));
+	zend_hash_apply_with_arguments(&EG(symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 
 	if (data){
-		//shurrik_user_cat_opline(data->opline);
+		shurrik_user_cat_opline(data->opline);
 		//shurrik_apply_op_array(data->op_array);
 
 		curr_func = data->function_state.function;
