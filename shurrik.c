@@ -61,6 +61,8 @@ int shurrik_hash_apply_for_zval(zval **val TSRMLS_DC);
 int shurrik_hash_apply_for_array(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
 int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
 
+static const char *shurrik_get_base_filename(const char *filename);
+static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC);
 
 /* {{{ shurrik_functions[]
  *
@@ -634,9 +636,109 @@ void shurrik_user_cat_opline(zend_op *opline){
 	}
 }
 
+static const char *shurrik_get_base_filename(const char *filename){
+	const char *ptr;
+	int 	found = 0;
+
+	if (!filename)
+		return "";
+
+	for (ptr = filename + strlen(filename) - 1; ptr >= filename; ptr--){
+		if (*ptr == '/')
+			found++;
+		if (found == 2)
+			return ptr + 1;
+	}
+
+	return filename;
+}
+
+static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
+	zend_execute_data *data;
+	const char		*func = NULL;
+	const char 		*cls = NULL;
+	char 			*ret = NULL;
+	int 			len;
+	zend_function 	*curr_func;
+
+	data = EG(current_execute_data);
+
+	if (data){
+		curr_func = data->function_state.function;
+		func = curr_func->common.function_name;
+
+		if (func){
+
+			if (curr_func->common.scope)
+				cls = curr_func->common.scope->name;
+			else if (data->object) 
+				cls = Z_OBJCE(*data->object)->name;
+
+			if (cls){
+				len = strlen(cls) + strlen(func) + 10;
+				ret = (char*)emalloc(len);
+				snprintf(ret, len, "%s::%s", cls, func);
+			}else {
+				ret = estrdup(func);
+			}
+
+
+		}else {
+			long     curr_op;
+      		int      add_filename = 0;
+
+#if ZEND_EXTENSION_API_NO >= 220100525
+      		curr_op = data->opline->extended_value;
+#else
+      		curr_op = data->opline->op2.u.constant.value.lval;
+#endif
+
+		      switch (curr_op) {
+		        case ZEND_EVAL:
+		          func = "eval";
+		          break;
+		        case ZEND_INCLUDE:
+		          func = "include";
+		          add_filename = 1;
+		          break;
+		        case ZEND_REQUIRE:
+		          func = "require";
+		          add_filename = 1;
+		          break;
+		        case ZEND_INCLUDE_ONCE:
+		          func = "include_once";
+		          add_filename = 1;
+		          break;
+		        case ZEND_REQUIRE_ONCE:
+		          func = "require_once";
+		          add_filename = 1;
+		          break;
+		        default:
+		          func = "???_op";
+		          break;
+		      }
+
+		      if (add_filename){
+		      	const char *filename;
+		      	int 	len;
+		      	filename = shurrik_get_base_filename((curr_func->op_array).filename);
+		      	len = strlen("run_init") + strlen(filename) + 3;
+		      	ret = (char*)emalloc(len);
+		      	snprintf(ret, len, "run_init::%s", filename);
+		      }else {
+		      	ret = estrdup(func);
+		      }
+		}
+
+	}
+
+	return ret;
+}
+
 void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 	int i;
 	char shurrik_tmp[256];
+	char *func = NULL;
 
 	/*if (strcmp(shurrik_user_tmp,op_array->filename) != 0){
 		sprintf(shurrik_user_tmp,op_array->filename);
@@ -648,6 +750,10 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 	for (i = 0; i < op_array->last; i++){
 		shurrik_user_cat_opline(&op_array->opcodes[i]);
 	}*/
+
+	func = shurrik_get_function_name(op_array TSRMLS_CC);
+
+	php_printf("%s\n", func);
 	
 	shurrik_old_execute(op_array TSRMLS_CC);
 }
@@ -764,9 +870,9 @@ PHP_RINIT_FUNCTION(shurrik)
  */
 PHP_RSHUTDOWN_FUNCTION(shurrik)
 {
-	zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
+	//zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 	//zend_hash_apply_with_argument(EG(function_table),shurrik_hash_apply_for_function, 0);
-	shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
+	//shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
 	//zend_hash_apply(EG(function_table),(apply_func_t) shurrik_function_test TSRMLS_CC);
 	shurrik_client();
 	return SUCCESS;
