@@ -61,6 +61,7 @@ int shurrik_hash_apply_for_zval(zval **val TSRMLS_DC);
 int shurrik_hash_apply_for_array(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
 int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zend_hash_key *hash_key);
 
+void shurrik_dump_zend_execute_data(zend_execute_data *data TSRMLS_DC);
 static const char *shurrik_get_base_filename(const char *filename);
 static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC);
 
@@ -636,6 +637,32 @@ void shurrik_user_cat_opline(zend_op *opline){
 	}
 }
 
+void shurrik_dump_zend_execute_data(zend_execute_data *data TSRMLS_DC){
+	if (data){
+		php_printf("zend_execute_data<%p> {\n",data);
+		php_printf("	*opline -> %p\n", data->opline);
+		php_printf("	function_state -> %p\n", data->function_state);
+		php_printf("	*fbc -> %p\n", data->fbc);
+		php_printf("	*op_array -> %p\n", data->op_array);
+		if (data->object)
+			php_printf("	*object -> %s\n", Z_OBJCE(*data->object)->name);
+		else 
+			php_printf("	*object -> %p\n", data->object);
+		php_printf("	*symbol_table -> %p\n", data->symbol_table);
+		php_printf("	*prev_execute_data -> %p\n", data->prev_execute_data);
+		if (data->current_this)
+			php_printf("	*current_this -> %s\n", Z_OBJCE(*data->current_this)->name);
+		else 
+			php_printf("	*current_this -> %p\n", data->current_this);
+		if (data->current_object)
+			php_printf("	*current_object -> %s\n", Z_OBJCE(*data->current_object)->name);
+		else 
+			php_printf("	*current_object -> %p\n", data->current_object);
+		php_printf("	*call_opline -> %p\n", data->call_opline);
+		php_printf("}\n");
+	}
+}
+
 static const char *shurrik_get_base_filename(const char *filename){
 	const char *ptr;
 	int 	found = 0;
@@ -663,7 +690,12 @@ static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
 
 	data = EG(current_execute_data);
 
+	//shurrik_dump_zend_execute_data(data);
+
 	if (data){
+		//shurrik_user_cat_opline(data->opline);
+		//shurrik_apply_op_array(data->op_array);
+
 		curr_func = data->function_state.function;
 		func = curr_func->common.function_name;
 
@@ -752,8 +784,10 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 	}*/
 
 	func = shurrik_get_function_name(op_array TSRMLS_CC);
-
-	php_printf("%s\n", func);
+	if (func){
+		sprintf(shurrik_tmp,"%s\n",func);
+		strcat(shurrik_data.some_data, shurrik_tmp);
+	}
 	
 	shurrik_old_execute(op_array TSRMLS_CC);
 }
