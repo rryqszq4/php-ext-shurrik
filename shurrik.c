@@ -63,7 +63,9 @@ int shurrik_hash_apply_for_zval_and_key(zval **val,int num_args,va_list args,zen
 
 void shurrik_dump_zend_execute_data(zend_execute_data *data TSRMLS_DC);
 static const char *shurrik_get_base_filename(const char *filename);
+static char *shurrik_get_function_file(zend_op_array *op_array TSRMLS_DC);
 static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC);
+static char *shurrik_get_internal_function_name(zend_execute_data *data TSRMLS_DC);
 
 /* {{{ shurrik_functions[]
  *
@@ -680,25 +682,56 @@ static const char *shurrik_get_base_filename(const char *filename){
 	return filename;
 }
 
+static char *shurrik_get_function_file(zend_op_array *op_array TSRMLS_DC){
+	char *file = NULL;
+	int  len;
+	if (op_array){
+		len = strlen(op_array->filename)+1;
+		file = (char *)emalloc(len);
+		snprintf(file, len, "%s", op_array->filename);
+	}
+
+	return file;
+}
+
+static int shurrik_get_function_line(zend_op *opline TSRMLS_DC){
+	int line = 0;
+	if (opline){
+		line = opline->lineno;
+	}
+	return line;
+}
+
 static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
 	zend_execute_data *data;
 	HashTable *ht;
 	const char		*func = NULL;
 	const char 		*cls = NULL;
 	char 			*ret = NULL;
+	char 			*file = NULL;
+	int 			line = 0;
+	char 			*info = NULL;
 	int 			len;
+	int 			info_len;
 	zend_function 	*curr_func;
+	char shurrik_tmp[256];
 
 	data = EG(current_execute_data);
 
-	shurrik_dump_zend_execute_data(data);
-	php_printf("%p\n",EG(active_symbol_table));
-	php_printf("%p\n",&EG(symbol_table));
-	zend_hash_apply_with_arguments(&EG(symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
+	//php_printf("%p\n",EG(active_symbol_table));
+	//php_printf("%p\n",&EG(symbol_table));
+	//zend_hash_apply_with_arguments(&EG(symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
+
+	memset(shurrik_tmp,0,256);
 
 	if (data){
-		shurrik_user_cat_opline(data->opline);
+		//shurrik_dump_zend_execute_data(data);
+		//shurrik_user_cat_opline(data->opline);
+		//php_printf("%s\n",data->op_array->filename);
 		//shurrik_apply_op_array(data->op_array);
+
+		file = shurrik_get_function_file(data->op_array);
+		line = shurrik_get_function_line(data->opline);
 
 		curr_func = data->function_state.function;
 		func = curr_func->common.function_name;
@@ -766,15 +799,119 @@ static char *shurrik_get_function_name(zend_op_array *op_array TSRMLS_DC){
 		      }
 		}
 
+		if (ret && line && file){
+			sprintf(shurrik_tmp,"%-35s%-6d%-50s", ret,line,file);
+			//snprintf(info, info_len, "%-4d%-35s%-50s", line,ret,file);
+		}
+
 	}
 
-	return ret;
+
+	return shurrik_tmp;
+}
+
+static char *shurrik_get_internal_function_name(zend_execute_data *data TSRMLS_DC){
+	HashTable *ht;
+	const char		*func = NULL;
+	const char 		*cls = NULL;
+	char 			*ret = NULL;
+	char 			*file = NULL;
+	int 			line = 0;
+	char 			*info = NULL;
+	int 			len;
+	int 			info_len;
+	zend_function 	*curr_func;
+	char shurrik_tmp[256];
+
+	memset(shurrik_tmp,0,256);
+
+	if (data){
+
+		file = shurrik_get_function_file(data->op_array);
+		line = shurrik_get_function_line(data->opline);
+
+		curr_func = data->function_state.function;
+		func = curr_func->common.function_name;
+
+		if (func){
+
+			if (curr_func->common.scope)
+				cls = curr_func->common.scope->name;
+			else if (data->object) 
+				cls = Z_OBJCE(*data->object)->name;
+
+			if (cls){
+				len = strlen(cls) + strlen(func) + 10;
+				ret = (char*)emalloc(len);
+				snprintf(ret, len, "%s::%s", cls, func);
+			}else {
+				ret = estrdup(func);
+			}
+
+
+		}else {
+			long     curr_op;
+      		int      add_filename = 0;
+
+#if ZEND_EXTENSION_API_NO >= 220100525
+      		curr_op = data->opline->extended_value;
+#else
+      		curr_op = data->opline->op2.u.constant.value.lval;
+#endif
+
+		      switch (curr_op) {
+		        case ZEND_EVAL:
+		          func = "eval";
+		          break;
+		        case ZEND_INCLUDE:
+		          func = "include";
+		          add_filename = 1;
+		          break;
+		        case ZEND_REQUIRE:
+		          func = "require";
+		          add_filename = 1;
+		          break;
+		        case ZEND_INCLUDE_ONCE:
+		          func = "include_once";
+		          add_filename = 1;
+		          break;
+		        case ZEND_REQUIRE_ONCE:
+		          func = "require_once";
+		          add_filename = 1;
+		          break;
+		        default:
+		          func = "???_op";
+		          break;
+		      }
+
+		      if (add_filename){
+		      	const char *filename;
+		      	int 	len;
+		      	filename = shurrik_get_base_filename((curr_func->op_array).filename);
+		      	len = strlen("run_init") + strlen(filename) + 3;
+		      	ret = (char*)emalloc(len);
+		      	snprintf(ret, len, "run_init::%s", filename);
+		      }else {
+		      	ret = estrdup(func);
+		      }
+		}
+
+		if (ret){
+			sprintf(shurrik_tmp,"%-35s%-6d%-50s", ret,line,file);
+			//snprintf(info, info_len, "%-4d%-35s%-50s", line,ret,file);
+		}
+
+	}
+
+
+	return shurrik_tmp;
 }
 
 void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 	int i;
 	char shurrik_tmp[256];
 	char *func = NULL;
+	char *filename = NULL;
 
 	/*if (strcmp(shurrik_user_tmp,op_array->filename) != 0){
 		sprintf(shurrik_user_tmp,op_array->filename);
@@ -790,7 +927,9 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 	func = shurrik_get_function_name(op_array TSRMLS_CC);
 	if (func){
 		sprintf(shurrik_tmp,"%s\n",func);
+		strcat(shurrik_data.some_data,"\033[1m");
 		strcat(shurrik_data.some_data, shurrik_tmp);
+		strcat(shurrik_data.some_data,"\033[0m");
 	}
 	
 	shurrik_old_execute(op_array TSRMLS_CC);
@@ -798,8 +937,10 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 
 void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC){
 	char shurrik_tmp[256];
+	char *func = NULL;
 
-	if (strcmp(shurrik_exec_tmp,execute_data_ptr->op_array->filename) != 0){
+
+	/*if (strcmp(shurrik_exec_tmp,execute_data_ptr->op_array->filename) != 0){
 		sprintf(shurrik_exec_tmp,execute_data_ptr->op_array->filename);
 		strcat(shurrik_data.some_data,shurrik_exec_tmp);
 		sprintf(shurrik_tmp,"\n%s\t%s\n","line","function");
@@ -807,7 +948,16 @@ void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_va
 	}
 
 	shurrik_internal_cat_opline(execute_data_ptr->opline);
-	
+	*/
+
+	func = shurrik_get_internal_function_name(execute_data_ptr TSRMLS_CC);
+	if (func){
+		strcat(shurrik_data.some_data,"\033[34;1m");
+		sprintf(shurrik_tmp,"%s\n",func);
+		strcat(shurrik_data.some_data, shurrik_tmp);
+		strcat(shurrik_data.some_data,"\033[0m");
+	}
+
 	if (!shurrik_old_execute_internal){
 		execute_internal(execute_data_ptr, return_value_used TSRMLS_CC);
 	}else {
