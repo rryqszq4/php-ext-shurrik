@@ -29,6 +29,9 @@
 #include "shurrik_client.h"
 #include "shurrik_oparray.h"
 #include <ctype.h>
+#include <stdint.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define EXEC_BUFFER_SIZE 1024*256
 
@@ -127,6 +130,12 @@ int shurrik_client(){
 	write(server_fifo_fd, &shurrik_data, sizeof(shurrik_data));
 	close(server_fifo_fd);
 	return 1;
+}
+
+uint64_t shurrik_time_usec() {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (uint64_t)tv.tv_sec * 1000000 + (uint64_t)tv.tv_usec;
 }
 
 
@@ -639,6 +648,10 @@ void shurrik_user_cat_opline(zend_op *opline){
 	}
 }
 
+void shurrik_dump_zend_op(zend_op *opline TSRMLS_DC){
+
+}
+
 void shurrik_dump_zend_execute_data(zend_execute_data *data TSRMLS_DC){
 	if (data){
 		php_printf("zend_execute_data<%p> {\n",data);
@@ -908,6 +921,7 @@ static char *shurrik_get_internal_function_name(zend_execute_data *data TSRMLS_D
 }
 
 void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
+	uint64_t start_time,end_time;
 	int i;
 	char shurrik_tmp[256];
 	char *func = NULL;
@@ -930,12 +944,20 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 		strcat(shurrik_data.some_data,"\033[1m");
 		strcat(shurrik_data.some_data, shurrik_tmp);
 		strcat(shurrik_data.some_data,"\033[0m");
+		//start_time = shurrik_time_usec();
 	}
 	
 	shurrik_old_execute(op_array TSRMLS_CC);
+
+	/*if (func){
+		end_time = shurrik_time_usec();
+		sprintf(shurrik_tmp, "called:%d\n", end_time - start_time);
+		strcat(shurrik_data.some_data, shurrik_tmp);
+	}*/
 }
 
 void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC){
+	uint64_t start_time,end_time;
 	char shurrik_tmp[256];
 	char *func = NULL;
 
@@ -956,6 +978,7 @@ void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_va
 		sprintf(shurrik_tmp,"%s\n",func);
 		strcat(shurrik_data.some_data, shurrik_tmp);
 		strcat(shurrik_data.some_data,"\033[0m");
+		//start_time = shurrik_time_usec();
 	}
 
 	if (!shurrik_old_execute_internal){
@@ -963,6 +986,12 @@ void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_va
 	}else {
 		shurrik_old_execute_internal(execute_data_ptr , return_value_used TSRMLS_CC);
 	}
+
+	/*if (func){
+		end_time = shurrik_time_usec();
+		sprintf(shurrik_tmp, "%-5d\n", end_time - start_time);
+		strcat(shurrik_data.some_data, shurrik_tmp);
+	}*/
 }
 
 static void shurrik_get_value(){
