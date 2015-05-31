@@ -40,6 +40,7 @@ char  exec_user_data[EXEC_BUFFER_SIZE - 1];
 char  exec_internal_data[EXEC_BUFFER_SIZE - 1];
 char shurrik_exec_tmp[256];
 char shurrik_user_tmp[256];
+int shurrik_server_fd;
 
 /* If you declare any globals in php_shurrik.h uncomment this:
 ZEND_DECLARE_MODULE_GLOBALS(shurrik)
@@ -109,17 +110,26 @@ ZEND_GET_MODULE(shurrik)
 #endif
 
 int shurrik_init(){
+  	int server_fifo_fd;
+
 	*shurrik_data.some_data = "";
 	sprintf(shurrik_data.some_data,"==================== start ====================\n");
-	return 1;
-}
-
-int shurrik_client(){
-	int server_fifo_fd, client_fifo_fd;
-	char client_fifo[256];
+	//php_printf("shurrik_init\n");
 
 	server_fifo_fd = open(SERVER_FIFO_NAME, O_WRONLY);
 	if (server_fifo_fd == -1){
+		//fprintf(stderr, "Sorry, no shurrik server\n");
+		//php_printf("Sorry, no shurrik server\n");
+		return -1;
+	}
+	return server_fifo_fd;
+}
+
+int shurrik_client(int fd){
+	int server_fifo_fd, client_fifo_fd;
+	char client_fifo[256];
+
+	if (fd == -1){
 		//fprintf(stderr, "Sorry, no shurrik server\n");
 		php_printf("Sorry, no shurrik server\n");
 		return 1;
@@ -127,8 +137,8 @@ int shurrik_client(){
 	
 	//sprintf(shurrik_data.some_data, "Hello from ");
 	strcat(shurrik_data.some_data,"\n==================== end ====================\n");
-	write(server_fifo_fd, &shurrik_data, sizeof(shurrik_data));
-	close(server_fifo_fd);
+	write(fd, &shurrik_data, sizeof(shurrik_data));
+	close(fd);
 	return 1;
 }
 
@@ -944,16 +954,17 @@ void shurrik_execute(zend_op_array *op_array TSRMLS_DC){
 		strcat(shurrik_data.some_data,"\033[1m");
 		strcat(shurrik_data.some_data, shurrik_tmp);
 		strcat(shurrik_data.some_data,"\033[0m");
+		//php_printf("%s\n",shurrik_tmp);
 		//start_time = shurrik_time_usec();
 	}
-	
+
 	shurrik_old_execute(op_array TSRMLS_CC);
 
-	/*if (func){
-		end_time = shurrik_time_usec();
-		sprintf(shurrik_tmp, "called:%d\n", end_time - start_time);
-		strcat(shurrik_data.some_data, shurrik_tmp);
-	}*/
+	if (func){
+		//end_time = shurrik_time_usec();
+		//sprintf(shurrik_tmp, "called:%d\n", end_time - start_time);
+		//strcat(shurrik_data.some_data, shurrik_tmp);
+	}
 }
 
 void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_value_used TSRMLS_DC){
@@ -978,6 +989,7 @@ void shurrik_execute_internal(zend_execute_data *execute_data_ptr, int return_va
 		sprintf(shurrik_tmp,"%s\n",func);
 		strcat(shurrik_data.some_data, shurrik_tmp);
 		strcat(shurrik_data.some_data,"\033[0m");
+		//php_printf("%s\n",shurrik_tmp);
 		//start_time = shurrik_time_usec();
 	}
 
@@ -1044,7 +1056,7 @@ PHP_MINIT_FUNCTION(shurrik)
 	/* If you have INI entries, uncomment these lines 
 	REGISTER_INI_ENTRIES();
 	*/
-
+	//php_printf("minit\n");
 	//shurrik_init();
 
 	//old_compile_file = zend_compile_file;
@@ -1067,6 +1079,8 @@ PHP_MSHUTDOWN_FUNCTION(shurrik)
 	/* uncomment this line if you have INI entries
 	UNREGISTER_INI_ENTRIES();
 	*/
+	//shurrik_client();
+	//php_printf("mshutdown\n");
 	return SUCCESS;
 }
 /* }}} */
@@ -1076,8 +1090,8 @@ PHP_MSHUTDOWN_FUNCTION(shurrik)
  */
 PHP_RINIT_FUNCTION(shurrik)
 {
-
-	shurrik_init();
+	//php_printf("rinit\n");
+	shurrik_server_fd = shurrik_init();
 	return SUCCESS;
 }
 /* }}} */
@@ -1087,11 +1101,12 @@ PHP_RINIT_FUNCTION(shurrik)
  */
 PHP_RSHUTDOWN_FUNCTION(shurrik)
 {
+	//php_printf("rshutdown\n");
 	//zend_hash_apply_with_arguments(EG(active_symbol_table),shurrik_hash_apply_for_zval_and_key, 0);
 	//zend_hash_apply_with_argument(EG(function_table),shurrik_hash_apply_for_function, 0);
 	//shurrik_hash_apply_for_function(EG(function_table),CG(active_op_array));
 	//zend_hash_apply(EG(function_table),(apply_func_t) shurrik_function_test TSRMLS_CC);
-	shurrik_client();
+	shurrik_client(shurrik_server_fd);
 	return SUCCESS;
 }
 /* }}} */
